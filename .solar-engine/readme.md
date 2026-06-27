@@ -1,5 +1,3 @@
-# Welcome to Solar Engine Scripts ONLY!
+# Welcome to Scripts For Solar Engine ONLY!
 
 made by **ymrgame2009**
-
-you can found scripts in `.solar-engine/Scripts/here`
