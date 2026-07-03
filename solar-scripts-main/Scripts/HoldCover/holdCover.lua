@@ -1,6 +1,6 @@
 -- ╔══════════════════════════════════════════════════════╗
 -- ║   V-Slice Hold Cover — Auto RGB / Multi-Color        ║
--- ║   Psych Engine 0.6.3  [FIXED v5]                     ║
+-- ║   Psych Engine 0.6.3  [v6]                           ║
 -- ║   Solar Engine 0.6.X — Universe Engine 0.5.5	      ║
 -- ║   By Mr YMR (@ymrgame2009)				              ║
 -- ╚══════════════════════════════════════════════════════╝
@@ -24,11 +24,69 @@ local eHasSustain = {false, false, false, false}
 local isPixelStage = false
 local isBotPlay    = false
 local useRGB       = false
+local forcePixelCover = false
+
+local pixelStages = {
+    school = true,
+    schoolevil = true,
+    schoolerect = true,
+    ['schoolevil-alt'] = true,
+    idk = true,
+    block = true,
+    missingblock = true,
+    undertale = true,
+    shadow = true,
+    stage1b = true,
+    stage1f = true,
+    stage2b = true,
+    stage2f = true,
+    stage3b = true,
+    stage3f = true,
+    stagecb = true,
+    stagep = true,
+    stagepenser = true
+}
+
+function detectPixelStage()
+    local pixel = getPropertyFromClass('states.PlayState', 'isPixelStage')
+    if pixel == nil then pixel = getPropertyFromClass('PlayState', 'isPixelStage') end
+    if pixel == nil then pixel = getPropertyFromClass('states.PlayState', 'stageData.isPixelStage') end
+    if pixel == nil then pixel = getPropertyFromClass('PlayState', 'stageData.isPixelStage') end
+    if pixel == nil then pixel = getProperty('isPixelStage') end
+    if pixel == nil then pixel = getProperty('stageData.isPixelStage') end
+
+    if forcePixelCover or pixel == true or pixel == 'true' then
+        return true
+    end
+
+    local stage = getPropertyFromClass('states.PlayState', 'curStage')
+    if stage == nil then stage = getPropertyFromClass('PlayState', 'curStage') end
+    if stage == nil then stage = getProperty('curStage') end
+    if stage == nil then stage = getProperty('SONG.stage') end
+
+    if stage ~= nil then
+        return pixelStages[string.lower(tostring(stage))] == true
+    end
+
+    return false
+end
+
+function forcePixelRender(tag)
+    setProperty(tag..'.antialiasing', false)
+    runHaxeCode(
+        'var spr = game.modchartSprites.get("' .. tag .. '");'
+     .. 'if (spr != null) {'
+     ..     'spr.antialiasing = false;'
+     ..     'if (spr.graphic != null && spr.graphic.bitmap != null)'
+     ..         'spr.graphic.bitmap.smoothing = false;'
+     .. '}'
+    )
+end
 
 -- ===================== SETUP =====================
 
 function onCreatePost()
-    isPixelStage = getPropertyFromClass('states.PlayState', 'isPixelStage')
+    isPixelStage = detectPixelStage()
     isBotPlay    = getPropertyFromClass('states.PlayState', 'cpuControlled')
 
     useRGB = getPropertyFromClass('backend.ClientPrefs', 'data.noteRGB')
@@ -69,11 +127,17 @@ function setupCover(tag, color)
     setProperty(tag .. '.alpha', 0.0001)
     setProperty(tag .. '.visible', true)
     addLuaSprite(tag, true)
+
+    if isPixelStage then
+        forcePixelRender(tag)
+    end
 end
 
 -- ===================== HELPERS =====================
 
 function showCover(tag, dir, isPlayer)
+    isPixelStage = detectPixelStage()
+
     if isPlayer then
         pActive[dir+1]           = true
         rgbApplied.player[dir+1] = false
@@ -81,9 +145,14 @@ function showCover(tag, dir, isPlayer)
         eActive[dir+1]           = true
         rgbApplied.enemy[dir+1]  = false
     end
+    local strumGroup = isPlayer and 'playerStrums' or 'opponentStrums'
     setProperty(tag..'.visible', true)
-    setProperty(tag..'.alpha', 1)
-    setProperty(tag..'.antialiasing', not isPixelStage)
+    setProperty(tag..'.alpha',   getPropertyFromGroup(strumGroup, dir, 'alpha'))
+    if isPixelStage then
+        forcePixelRender(tag)
+    else
+        setProperty(tag..'.antialiasing', true)
+    end
     if getProperty(tag..'.animation.curAnim.name') ~= 'hold' then
         playAnim(tag, 'hold', true)
     end
@@ -127,6 +196,8 @@ end
 -- ===================== UPDATE =====================
 
 function onUpdatePost(elapsed)
+    isPixelStage = detectPixelStage()
+
     for i = 0, 3 do
         local pTag   = playerCovers[i+1]
         local eTag   = enemyCovers[i+1]
@@ -186,10 +257,10 @@ end
 
 function updatePos(tag, strum)
     if isPixelStage then
-        setGraphicSize(tag, getProperty(strum..'.width') * 1.4)
+        setGraphicSize(tag, getProperty(strum..'.width') * 12)
         updateHitbox(tag)
-        setProperty(tag..'.x', getProperty(strum..'.x') - (getProperty(tag..'.width')  / 6))
-        setProperty(tag..'.y', getProperty(strum..'.y') - (getProperty(tag..'.height') / 4))
+        setProperty(tag..'.x', getProperty(strum..'.x') - 395)
+        setProperty(tag..'.y', getProperty(strum..'.y') - 120)
     else
         scaleObject(tag, 1, 1)
         updateHitbox(tag)
@@ -209,13 +280,24 @@ function applyRGB(tag, id, isPlayer)
      ..     ' ? game.playerStrums.members['   .. ids .. ']'
      ..     ' : game.opponentStrums.members[' .. ids .. '];'
      .. 'if (cover != null && strum != null) {'
-     ..     'if (cover.shader == null && strum.shader != null)'
-     ..         ' cover.shader = strum.shader;'
-     ..     'if (cover.rgbShader != null && strum.rgbShader != null) {'
-     ..         'cover.rgbShader.parent.r = strum.rgbShader.parent.r;'
-     ..         'cover.rgbShader.parent.g = strum.rgbShader.parent.g;'
-     ..         'cover.rgbShader.parent.b = strum.rgbShader.parent.b;'
-     ..     '} else { cover.color = strum.color; }'
+     ..     'try {'
+     ..         'var rgb:Dynamic = Reflect.field(strum, "rgbShader");'
+     ..         'if (rgb != null) {'
+     ..             'try { Reflect.setField(cover, "rgbShader", rgb); } catch(e:Dynamic) {}'
+     ..             'var rgbShader:Dynamic = Reflect.field(rgb, "shader");'
+     ..             'if (rgbShader != null) cover.shader = rgbShader;'
+     ..             'else if (strum.shader != null) cover.shader = strum.shader;'
+     ..         '} else if (strum.shader != null) {'
+     ..             'cover.shader = strum.shader;'
+     ..         '}'
+     ..     '} catch(e:Dynamic) {'
+     ..         'if (strum.shader != null) cover.shader = strum.shader;'
+     ..     '}'
+     ..     'if (cover.shader == null) cover.color = strum.color;'
+     ..     'if (' .. tostring(isPixelStage) .. ') {'
+     ..         'cover.antialiasing = false;'
+     ..         'if (cover.graphic != null && cover.graphic.bitmap != null) cover.graphic.bitmap.smoothing = false;'
+     ..     '}'
      .. '}'
     )
 end
