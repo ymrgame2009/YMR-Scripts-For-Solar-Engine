@@ -1,6 +1,6 @@
 -- ╔══════════════════════════════════════════════════════╗
 -- ║   Note Splashes Offsets                              ║
--- ║   Psych Engine 0.6.3  [v1]                           ║
+-- ║   Psych Engine 0.6.3  [v1 HOTFIX]                    ║
 -- ║   Solar Engine 0.6.X                                 ║
 -- ║   By Mr YMR (@ymrgame2009)				              ║
 -- ╚══════════════════════════════════════════════════════╝
@@ -45,7 +45,7 @@ function onCreatePost()
     end
     
     while #offsets < 8 do
-        table.insert(offsets, {x = 10, y = 10})
+        table.insert(offsets, {x = 0, y = 0})
     end
 end
 
@@ -69,8 +69,8 @@ function onUpdatePost()
             end
             
             if ox ~= nil then
-                setPropertyFromGroup('grpNoteSplashes', i, 'offset.x', ox)
-                setPropertyFromGroup('grpNoteSplashes', i, 'offset.y', oy)
+                setPropertyFromGroup('grpNoteSplashes', i, 'offset.x', ox + 10)
+                setPropertyFromGroup('grpNoteSplashes', i, 'offset.y', oy + 10)
             end
         end
     end
