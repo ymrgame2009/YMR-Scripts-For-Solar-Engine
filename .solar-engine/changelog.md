@@ -1,6 +1,6 @@
 # Note Splashes Offsets For SE 0.6.X & PE 0.6.3 : 
 
-# V1:
+# V2: Support for animation speed (FPS)
 
 **What did i do?**
 I created a small Lua script that acts as a "bridge", forcing PE 0.6.3 to read a `noteSplashes.txt` file and apply the offsets to the note splashes in real-time during gameplay, which the engine doesn't do natively in this version.
@@ -17,6 +17,7 @@ I created a small Lua script that acts as a "bridge", forcing PE 0.6.3 to read a
 example: *Note Splashes Vanilla*
 ```txt
 note splash
+22 26
 -26 -20
 -26 -20
 -26 -20
@@ -26,7 +27,7 @@ note splash
 -14 -16
 -14 -16
 ```
-**NO ANIM FPS DELETE THAT SHIT**
+~~**NO ANIM FPS DELETE THAT SHIT**~~ (Now its **Support for animation speed (FPS)**)
 
 # Enable (noteSplashes) in UE 0.5.5 + RGB + Pixel SUPPORT :
 
