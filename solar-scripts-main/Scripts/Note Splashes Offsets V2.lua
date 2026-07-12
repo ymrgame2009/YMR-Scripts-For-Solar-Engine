@@ -1,11 +1,12 @@
 -- ╔══════════════════════════════════════════════════════╗
--- ║   Note Splashes Offsets                              ║
--- ║   Psych Engine 0.6.3  [v1 HOTFIX]                    ║
+-- ║   Note Splashes Offsets & FPS Fixer                  ║
+-- ║   Psych Engine 0.6.3  [v2 FPS UPDATE]                ║
 -- ║   Solar Engine 0.6.X                                 ║
--- ║   By Mr YMR (@ymrgame2009)				              ║
+-- ║   By Mr YMR (@ymrgame2009)                           ║
 -- ╚══════════════════════════════════════════════════════╝
 
 local offsets = {}
+local targetFPS = 24 -- The default value if no FPS numbers are found
 
 function onCreatePost()
     local splashName = "noteSplashes"
@@ -33,10 +34,23 @@ function onCreatePost()
     for i = 1, #searchPaths do
         local file = io.open(searchPaths[i], "r")
         if file then
+            local lineNum = 0
             for line in file:lines() do
-                local x, y = string.match(line, "^([%-%d]+)%s+([%-%d]+)$")
-                if x and y then
-                    table.insert(offsets, {x = tonumber(x), y = tonumber(y)})
+                lineNum = lineNum + 1
+                
+                -- Line 2: Read min & max FPS and apply the equation
+                if lineNum == 2 then
+                    local minF, maxF = string.match(line, "^([%d]+)%s+([%d]+)$")
+                    if minF and maxF then
+                        targetFPS = (tonumber(minF) + tonumber(maxF)) / 2
+                    end
+                
+                -- The remaining lines: Reading the offset
+                elseif lineNum > 2 then
+                    local x, y = string.match(line, "^([%-%d]+)%s+([%-%d]+)$")
+                    if x and y then
+                        table.insert(offsets, {x = tonumber(x), y = tonumber(y)})
+                    end
                 end
             end
             file:close()
@@ -44,6 +58,7 @@ function onCreatePost()
         end
     end
     
+    -- Ensure there are 8 offsets
     while #offsets < 8 do
         table.insert(offsets, {x = 0, y = 0})
     end
@@ -69,8 +84,12 @@ function onUpdatePost()
             end
             
             if ox ~= nil then
+                -- Offset application with the addition of the 10 smart cores
                 setPropertyFromGroup('grpNoteSplashes', i, 'offset.x', ox + 10)
                 setPropertyFromGroup('grpNoteSplashes', i, 'offset.y', oy + 10)
+                
+                -- New: Enforces animation speed (FPS) calculated from the text file.
+                setPropertyFromGroup('grpNoteSplashes', i, 'animation.curAnim.frameRate', targetFPS)
             end
         end
     end
